@@ -1,0 +1,17 @@
+{
+  "name": "The Bug Bank",
+  "short_name": "Bug Bank",
+  "description": "Savings tracker with ginger bug companion",
+  "start_url": "/index.html",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#f5f0e8",
+  "theme_color": "#c17f24",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🫚</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f5f0e8">
+<title>The Bug Bank</title>
+<link rel="manifest" href="manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #f5f0e8;
+    --warm-white: #faf7f2;
+    --ginger: #c17f24;
+    --ginger-light: #e8a93a;
+    --ginger-dark: #8b5a0f;
+    --green: #4a7c59;
+    --green-light: #6aaa7a;
+    --red: #c0392b;
+    --text: #2c1810;
+    --text-light: #6b4c35;
+    --border: #d4c5a9;
+    --shadow: rgba(44,24,16,0.12);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Lato', sans-serif;
+    background: var(--cream);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Texture overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app { position: relative; z-index: 1; max-width: 420px; margin: 0 auto; padding: 0 0 100px; }
+
+  /* HEADER */
+  .header {
+    background: linear-gradient(135deg, var(--ginger-dark) 0%, var(--ginger) 60%, var(--ginger-light) 100%);
+    padding: 28px 20px 24px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; left: 0; right: 0;
+    height: 20px;
+    background: var(--cream);
+    clip-path: ellipse(55% 100% at 50% 100%);
+  }
+  .header-bug {
+    font-size: 42px;
+    line-height: 1;
+    margin-bottom: 6px;
+    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.2));
+  }
+  .header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: 0.02em;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  .header-sub {
+    color: rgba(255,255,255,0.8);
+    font-size: 12px;
+    font-weight: 300;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  /* STREAK BAR */
+  .streak-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--warm-white);
+    margin: 20px 16px 0;
+    border-radius: 16px;
+    padding: 14px 18px;
+    border: 1.5px solid var(--border);
+    box-shadow: 0 2px 12px var(--shadow);
+  }
+  .streak-item { text-align: center; }
+  .streak-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--ginger);
+    line-height: 1;
+  }
+  .streak-num.green { color: var(--green); }
+  .streak-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-light);
+    margin-top: 2px;
+  }
+  .streak-divider { width: 1px; height: 40px; background: var(--border); }
+
+  /* SAVINGS CARD */
+  .savings-card {
+    margin: 16px 16px 0;
+    background: var(--warm-white);
+    border-radius: 20px;
+    padding: 20px;
+    border: 1.5px solid var(--border);
+    box-shadow: 0 4px 20px var(--shadow);
+  }
+  .savings-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-light);
+    margin-bottom: 4px;
+  }
+  .savings-amount {
+    font-family: 'Playfair Display', serif;
+    font-size: 48px;
+    font-weight: 900;
+    color: var(--text);
+    line-height: 1;
+  }
+  .savings-amount span { font-size: 28px; color: var(--text-light); }
+  .savings-goal {
+    font-size: 13px;
+    color: var(--text-light);
+    margin-top: 4px;
+  }
+  .progress-track {
+    margin-top: 14px;
+    background: var(--border);
+    border-radius: 999px;
+    height: 10px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--ginger-dark), var(--ginger-light));
+    transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    min-width: 4px;
+  }
+  .progress-markers {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 4px;
+  }
+  .progress-marker {
+    font-size: 10px;
+    color: var(--text-light);
+  }
+  .progress-marker.hit { color: var(--green); font-weight: 700; }
+
+  /* CHECKIN */
+  .checkin-section {
+    margin: 16px 16px 0;
+  }
+  .checkin-btn {
+    width: 100%;
+    padding: 18px;
+    border-radius: 16px;
+    border: none;
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .checkin-btn.active {
+    background: linear-gradient(135deg, var(--green) 0%, var(--green-light) 100%);
+    color: white;
+    box-shadow: 0 4px 16px rgba(74,124,89,0.35);
+  }
+  .checkin-btn.done {
+    background: var(--warm-white);
+    color: var(--green);
+    border: 2px solid var(--green);
+  }
+  .checkin-btn.missed {
+    background: linear-gradient(135deg, var(--red) 0%, #e74c3c 100%);
+    color: white;
+  }
+  .checkin-btn:active { transform: scale(0.97); }
+
+  /* DENOMINATION BUTTONS */
+  .deposit-section {
+    margin: 16px 16px 0;
+  }
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 10px;
+  }
+  .denom-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .denom-btn {
+    background: var(--warm-white);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 4px;
+    font-family: 'Lato', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ginger-dark);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+    box-shadow: 0 2px 6px var(--shadow);
+  }
+  .denom-btn:active {
+    background: var(--ginger);
+    color: white;
+    border-color: var(--ginger);
+    transform: scale(0.93);
+  }
+  .denom-btn.coin { font-size: 12px; }
+
+  /* MANUAL ENTRY */
+  .manual-section {
+    margin: 14px 16px 0;
+    display: flex;
+    gap: 8px;
+  }
+  .manual-input {
+    flex: 1;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1.5px solid var(--border);
+    background: var(--warm-white);
+    font-family: 'Lato', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    outline: none;
+    box-shadow: 0 2px 6px var(--shadow);
+  }
+  .manual-input:focus { border-color: var(--ginger); }
+  .manual-input::placeholder { color: var(--border); font-weight: 300; }
+  .add-btn {
+    padding: 14px 20px;
+    border-radius: 12px;
+    border: none;
+    background: linear-gradient(135deg, var(--ginger-dark), var(--ginger));
+    color: white;
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(193,127,36,0.3);
+    transition: all 0.2s;
+  }
+  .add-btn:active { transform: scale(0.95); }
+
+  /* RECENT DEPOSITS */
+  .history-section {
+    margin: 20px 16px 0;
+  }
+  .history-list { display: flex; flex-direction: column; gap: 6px; }
+  .history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--warm-white);
+    border-radius: 10px;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .history-date { color: var(--text-light); }
+  .history-amount { font-weight: 700; color: var(--green); font-family: 'Playfair Display', serif; }
+
+  /* MODAL OVERLAY */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(44,24,16,0.6);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    backdrop-filter: blur(4px);
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--warm-white);
+    border-radius: 24px;
+    padding: 28px 24px;
+    max-width: 380px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    animation: modalIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes modalIn {
+    from { transform: scale(0.8) translateY(20px); opacity: 0; }
+    to { transform: scale(1) translateY(0); opacity: 1; }
+  }
+  .modal-emoji { font-size: 48px; text-align: center; margin-bottom: 12px; }
+  .modal-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 900;
+    text-align: center;
+    margin-bottom: 14px;
+    color: var(--text);
+  }
+  .modal-body {
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--text-light);
+    margin-bottom: 20px;
+  }
+  .modal-body.essay {
+    font-size: 13px;
+    font-style: italic;
+    background: var(--cream);
+    border-radius: 12px;
+    padding: 14px;
+    border-left: 3px solid var(--red);
+    max-height: 260px;
+    overflow-y: auto;
+  }
+  .modal-btn {
+    width: 100%;
+    padding: 16px;
+    border-radius: 14px;
+    border: none;
+    font-family: 'Playfair Display', serif;
+    font-size: 17px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 8px;
+  }
+  .modal-btn.primary {
+    background: linear-gradient(135deg, var(--ginger-dark), var(--ginger));
+    color: white;
+    box-shadow: 0 4px 14px rgba(193,127,36,0.35);
+  }
+  .modal-btn.secondary {
+    background: var(--cream);
+    color: var(--text-light);
+    border: 1.5px solid var(--border);
+  }
+  .modal-btn.danger {
+    background: linear-gradient(135deg, var(--red), #e74c3c);
+    color: white;
+  }
+  .modal-btn:active { transform: scale(0.97); }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 110px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--text);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 700;
+    opacity: 0;
+    transition: all 0.3s;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 200;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* NAV */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--warm-white);
+    border-top: 1.5px solid var(--border);
+    display: flex;
+    z-index: 50;
+    max-width: 420px;
+    margin: 0 auto;
+  }
+  .nav-btn {
+    flex: 1;
+    padding: 12px 8px 16px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-light);
+    transition: color 0.2s;
+  }
+  .nav-btn.active { color: var(--ginger); }
+  .nav-icon { font-size: 22px; line-height: 1; }
+
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* BUG PAGE */
+  .bug-card {
+    margin: 20px 16px 0;
+    background: var(--warm-white);
+    border-radius: 20px;
+    padding: 24px 20px;
+    border: 1.5px solid var(--border);
+    box-shadow: 0 4px 20px var(--shadow);
+    text-align: center;
+  }
+  .bug-face { font-size: 72px; margin-bottom: 8px; transition: all 0.5s; }
+  .bug-status {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .bug-detail { font-size: 13px; color: var(--text-light); line-height: 1.6; }
+  .bug-streak {
+    margin-top: 16px;
+    background: var(--cream);
+    border-radius: 12px;
+    padding: 12px;
+    font-size: 13px;
+    color: var(--text-light);
+  }
+  .bug-streak strong { color: var(--ginger); font-size: 20px; font-family: 'Playfair Display', serif; }
+
+  /* SETTINGS PAGE */
+  .settings-section {
+    margin: 20px 16px 0;
+    background: var(--warm-white);
+    border-radius: 16px;
+    border: 1.5px solid var(--border);
+    overflow: hidden;
+  }
+  .settings-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 18px;
+    border-bottom: 1px solid var(--border);
+    font-size: 15px;
+  }
+  .settings-item:last-child { border-bottom: none; }
+  .settings-item label { color: var(--text-light); font-size: 12px; margin-top: 2px; }
+  .settings-val { font-weight: 700; color: var(--ginger); font-family: 'Playfair Display', serif; }
+  .reset-btn {
+    width: calc(100% - 32px);
+    margin: 16px 16px 0;
+    padding: 14px;
+    border-radius: 12px;
+    border: 1.5px solid var(--red);
+    background: none;
+    color: var(--red);
+    font-family: 'Lato', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- HOME PAGE -->
+  <div class="page active" id="page-home">
+    <div class="header">
+      <div class="header-bug">🫚</div>
+      <h1>The Bug Bank</h1>
+      <div class="header-sub">Saving for a car · Est. 2026</div>
+    </div>
+
+    <div class="streak-bar">
+      <div class="streak-item">
+        <div class="streak-num" id="streak-num">0</div>
+        <div class="streak-label">🔥 Day Streak</div>
+      </div>
+      <div class="streak-divider"></div>
+      <div class="streak-item">
+        <div class="streak-num green" id="days-saving">0</div>
+        <div class="streak-label">Days Saving</div>
+      </div>
+      <div class="streak-divider"></div>
+      <div class="streak-item">
+        <div class="streak-num" id="pct-num">0%</div>
+        <div class="streak-label">To Goal</div>
+      </div>
+    </div>
+
+    <div class="savings-card">
+      <div class="savings-label">Total Saved</div>
+      <div class="savings-amount"><span>$</span><span id="total-display">0.00</span></div>
+      <div class="savings-goal">Goal: <strong>$15,000.00</strong> &nbsp;·&nbsp; Minimum: $6,000.00</div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+      </div>
+      <div class="progress-markers">
+        <span class="progress-marker" id="marker-6k">$6k</span>
+        <span class="progress-marker" id="marker-10k">$10k</span>
+        <span class="progress-marker" id="marker-15k">$15k 🏁</span>
+      </div>
+    </div>
+
+    <div class="checkin-section">
+      <button class="checkin-btn active" id="checkin-btn" onclick="handleCheckin()">
+        ✓ Daily Check-In
+      </button>
+    </div>
+
+    <div class="deposit-section">
+      <div class="section-title">Quick Add</div>
+      <div class="denom-grid">
+        <button class="denom-btn coin" onclick="addAmount(0.05)">5¢</button>
+        <button class="denom-btn coin" onclick="addAmount(0.10)">10¢</button>
+        <button class="denom-btn coin" onclick="addAmount(0.20)">20¢</button>
+        <button class="denom-btn coin" onclick="addAmount(0.50)">50¢</button>
+        <button class="denom-btn" onclick="addAmount(1)">$1</button>
+        <button class="denom-btn" onclick="addAmount(2)">$2</button>
+        <button class="denom-btn" onclick="addAmount(5)">$5</button>
+        <button class="denom-btn" onclick="addAmount(10)">$10</button>
+        <button class="denom-btn" onclick="addAmount(20)">$20</button>
+        <button class="denom-btn" onclick="addAmount(50)">$50</button>
+        <button class="denom-btn" onclick="addAmount(100)">$100</button>
+        <button class="denom-btn" onclick="addAmount(200)">$200</button>
+      </div>
+    </div>
+
+    <div class="manual-section">
+      <input class="manual-input" type="number" id="manual-input" placeholder="$0.00" step="0.01" min="0">
+      <button class="add-btn" onclick="addManual()">Add</button>
+    </div>
+
+    <div class="history-section">
+      <div class="section-title">Recent</div>
+      <div class="history-list" id="history-list"></div>
+    </div>
+  </div>
+
+  <!-- BUG PAGE -->
+  <div class="page" id="page-bug">
+    <div class="header">
+      <div class="header-bug">🧪</div>
+      <h1>The Bug</h1>
+      <div class="header-sub">Your fermentation companion</div>
+    </div>
+    <div class="bug-card">
+      <div class="bug-face" id="bug-face">🫧</div>
+      <div class="bug-status" id="bug-status">Waiting to be fed</div>
+      <div class="bug-detail" id="bug-detail">Check in daily to keep your ginger bug alive and bubbling. Miss a day and it suffers. Miss too many and it's gone.</div>
+      <div class="bug-streak">
+        Fed <strong id="bug-fed-days">0</strong> days in a row
+      </div>
+    </div>
+    <div class="savings-card" style="margin-top:16px">
+      <div class="savings-label">Bug Health Log</div>
+      <div id="bug-log" style="font-size:13px;color:var(--text-light);line-height:1.8;margin-top:8px">No entries yet.</div>
+    </div>
+  </div>
+
+  <!-- HISTORY PAGE -->
+  <div class="page" id="page-history">
+    <div class="header">
+      <div class="header-bug">📜</div>
+      <h1>History</h1>
+      <div class="header-sub">Every deposit counts</div>
+    </div>
+    <div class="savings-card" style="margin-top:20px">
+      <div class="savings-label">All Deposits</div>
+      <div id="full-history" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+  <!-- SETTINGS PAGE -->
+  <div class="page" id="page-settings">
+    <div class="header">
+      <div class="header-bug">⚙️</div>
+      <h1>Settings</h1>
+      <div class="header-sub">The Bug Bank configuration</div>
+    </div>
+    <div class="settings-section" style="margin-top:20px">
+      <div class="settings-item">
+        <div>
+          <div>Total Saved</div>
+          <label>Current balance</label>
+        </div>
+        <div class="settings-val" id="settings-total">$0.00</div>
+      </div>
+      <div class="settings-item">
+        <div>
+          <div>Current Streak</div>
+          <label>Consecutive days</label>
+        </div>
+        <div class="settings-val" id="settings-streak">0</div>
+      </div>
+      <div class="settings-item">
+        <div>
+          <div>Days Since Start</div>
+          <label>Total journey length</label>
+        </div>
+        <div class="settings-val" id="settings-days">0</div>
+      </div>
+    </div>
+    <button class="reset-btn" onclick="confirmReset()">Reset All Data</button>
+  </div>
+
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <button class="nav-btn active" id="nav-home" onclick="showPage('home')">
+    <span class="nav-icon">🏠</span>Home
+  </button>
+  <button class="nav-btn" id="nav-bug" onclick="showPage('bug')">
+    <span class="nav-icon">🫚</span>The Bug
+  </button>
+  <button class="nav-btn" id="nav-history" onclick="showPage('history')">
+    <span class="nav-icon">📜</span>History
+  </button>
+  <button class="nav-btn" id="nav-settings" onclick="showPage('settings')">
+    <span class="nav-icon">⚙️</span>Settings
+  </button>
+</div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal" id="modal-content"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────────────────────
+function loadState() {
+  const d = localStorage.getItem('bugbank');
+  if (d) return JSON.parse(d);
+  return {
+    total: 0,
+    streak: 0,
+    maxStreak: 0,
+    startDate: new Date().toDateString(),
+    lastCheckin: null,
+    lastFed: null,
+    bugStreak: 0,
+    deposits: [],
+    bugLog: []
+  };
+}
+
+function saveState() {
+  localStorage.setItem('bugbank', JSON.stringify(state));
+}
+
+let state = loadState();
+
+// ─── NEGLIGENCE ESSAYS ───────────────────────────────────────────────────────
+const essays = [
+  `Dear Negligent Operator,\n\nIt is with profound disappointment that I address you today. Your ginger bug — a living organism entrusted to your care — has gone without nourishment for a full day. This is not merely an oversight. This is a character failing.\n\nThe yeast within that jar did not ask to be born. It did not choose you as its custodian. And yet here we are, the bug hungry, your streak shattered, and your car no closer to being purchased.\n\nI urge you to reflect deeply on your choices. The path to automotive ownership is paved not with excuses, but with discipline.\n\nDisappointedly yours,\nThe Bug Bank`,
+
+  `FORMAL NOTICE OF STREAK TERMINATION\n\nThis document serves as official notification that your savings streak has been terminated effective immediately due to wilful neglect.\n\nThe ginger bug, which has done nothing but bubble faithfully in your presence, was denied its daily sustenance. In response, The Bug Bank has been forced to reset your streak to zero — a number that more accurately reflects your current commitment level.\n\nYou had one job. Feed the bug. Log your savings. One job.\n\nThis notice has been filed permanently in your record.\n\nRegards,\nThe Department of Financial Accountability`,
+
+  `An Open Letter to Someone Who Could Not Find 30 Seconds\n\nThirty seconds. That is all it would have taken. A mere half-minute out of your 86,400-second day. And yet those 30 seconds proved too great a burden.\n\nThe bug is hungry. Your streak is gone. The car remains a dream.\n\nI do not write this to shame you — though shame may be warranted. I write this because someone must say what needs to be said: you are capable of better. The ginger bug believes in you, even now, even hungry.\n\nDo better tomorrow.\n\nSincerely,\nYour Conscience (via The Bug Bank)`,
+
+  `INCIDENT REPORT — STREAK BREACH\n\nDate: ${new Date().toLocaleDateString()}\nSeverity: High\nNature of incident: Complete and utter failure to check in\n\nSummary:\nThe operator of this device failed to perform their daily check-in. As a direct result, the ginger bug did not receive its scheduled feeding. The savings streak, which represented days of admirable effort, has been reduced to zero.\n\nRoot cause analysis:\nThe operator forgot, couldn't be bothered, or made a series of questionable decisions that resulted in the check-in not occurring.\n\nRecommended corrective action:\nDo better. Set an alarm. Stick a note on the fridge. Whatever it takes.\n\nThis report has been noted.\n\nFiled by: The Bug Bank Oversight Committee`,
+
+  `To Whom It May Concern (It Concerns You),\n\nWe regret to inform you that your ginger bug has gone unfed. Again. We use the word "again" loosely — but statistically, this is likely not the last time.\n\nThe bug has been sitting there, jar sealed, cloth on top, doing everything right. It has been producing carbon dioxide. It has been maintaining acidity. It has been, frankly, carrying this relationship.\n\nAnd you? You forgot to check in.\n\nThe savings goal of $15,000 does not get closer by itself. The bug does not feed itself. Discipline is a muscle, and yours has apparently atrophied.\n\nWe believe in your capacity for improvement. We have to — we are a jar on your desk.\n\nPersistently yours,\nThe Ginger Bug (dictated to The Bug Bank)`,
+];
+
+// ─── UI HELPERS ──────────────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function showModal(html) {
+  document.getElementById('modal-content').innerHTML = html;
+  document.getElementById('modal-overlay').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('show');
+}
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+  if (name === 'bug') updateBugPage();
+  if (name === 'history') updateHistoryPage();
+  if (name === 'settings') updateSettingsPage();
+}
+
+// ─── RENDER ──────────────────────────────────────────────────────────────────
+function render() {
+  // Total
+  document.getElementById('total-display').textContent = state.total.toFixed(2);
+  document.getElementById('streak-num').textContent = state.streak;
+  document.getElementById('pct-num').textContent = Math.min(100, Math.round(state.total / 15000 * 100)) + '%';
+
+  // Days saving
+  const start = new Date(state.startDate);
+  const today = new Date();
+  const days = Math.floor((today - start) / 86400000);
+  document.getElementById('days-saving').textContent = days;
+
+  // Progress
+  const pct = Math.min(100, state.total / 15000 * 100);
+  document.getElementById('progress-fill').style.width = pct + '%';
+
+  // Markers
+  if (state.total >= 6000) document.getElementById('marker-6k').classList.add('hit');
+  if (state.total >= 10000) document.getElementById('marker-10k').classList.add('hit');
+  if (state.total >= 15000) document.getElementById('marker-15k').classList.add('hit');
+
+  // Checkin button
+  const btn = document.getElementById('checkin-btn');
+  const today2 = new Date().toDateString();
+  if (state.lastCheckin === today2) {
+    btn.className = 'checkin-btn done';
+    btn.textContent = '✓ Checked In Today';
+  } else {
+    btn.className = 'checkin-btn active';
+    btn.textContent = '✓ Daily Check-In';
+  }
+
+  // History
+  const hist = document.getElementById('history-list');
+  const recent = [...state.deposits].reverse().slice(0, 5);
+  hist.innerHTML = recent.length ? recent.map(d =>
+    `<div class="history-item"><span class="history-date">${d.date}</span><span class="history-amount">+$${d.amount.toFixed(2)}</span></div>`
+  ).join('') : '<div style="color:var(--text-light);font-size:13px">No deposits yet.</div>';
+
+  // Bug streak
+  document.getElementById('bug-fed-days').textContent = state.bugStreak;
+}
+
+// ─── CHECK IN ────────────────────────────────────────────────────────────────
+function handleCheckin() {
+  const today = new Date().toDateString();
+  if (state.lastCheckin === today) {
+    showToast('Already checked in today!');
+    return;
+  }
+
+  // Check if missed yesterday
+  const yesterday = new Date(Date.now() - 86400000).toDateString();
+  if (state.lastCheckin && state.lastCheckin !== yesterday) {
+    // Missed day — show essay
+    const essay = essays[Math.floor(Math.random() * essays.length)];
+    state.streak = 0;
+    state.bugStreak = 0;
+    saveState();
+    showModal(`
+      <div class="modal-emoji">😤</div>
+      <div class="modal-title">Streak Lost.</div>
+      <div class="modal-body essay">${essay.replace(/\n/g, '<br>')}</div>
+      <button class="modal-btn danger" onclick="closeModal();handleCheckin()">I understand. Let me check in.</button>
+    `);
+    return;
+  }
+
+  // Good checkin — ask about bug
+  showModal(`
+    <div class="modal-emoji">🫚</div>
+    <div class="modal-title">Check-In!</div>
+    <div class="modal-body">Streak extended ✓<br><br>Did you feed the bug today?<br><small style="color:var(--text-light)">(Fresh ginger + sugar syrup)</small></div>
+    <button class="modal-btn primary" onclick="completeCheckin(true)">Yes, bug is fed 🫧</button>
+    <button class="modal-btn secondary" onclick="completeCheckin(false)">Not today</button>
+  `);
+}
+
+function completeCheckin(fedBug) {
+  const today = new Date().toDateString();
+  state.lastCheckin = today;
+  state.streak++;
+  if (state.streak > state.maxStreak) state.maxStreak = state.streak;
+
+  if (fedBug) {
+    state.lastFed = today;
+    state.bugStreak++;
+    state.bugLog.unshift({ date: today, fed: true });
+  } else {
+    state.bugLog.unshift({ date: today, fed: false });
+  }
+
+  saveState();
+  closeModal();
+  render();
+
+  if (fedBug) {
+    showToast('🔥 Streak: ' + state.streak + ' days · Bug fed!');
+  } else {
+    showToast('🔥 Streak: ' + state.streak + ' days');
+  }
+
+  // Milestone check
+  checkMilestone();
+}
+
+// ─── ADD MONEY ───────────────────────────────────────────────────────────────
+function addAmount(amt) {
+  state.total += amt;
+  state.deposits.push({ date: new Date().toLocaleDateString(), amount: amt });
+  saveState();
+  render();
+  showToast('+$' + amt.toFixed(2) + ' added!');
+  checkMilestone();
+}
+
+function addManual() {
+  const input = document.getElementById('manual-input');
+  const val = parseFloat(input.value);
+  if (!val || val <= 0) { showToast('Enter a valid amount'); return; }
+  addAmount(Math.round(val * 100) / 100);
+  input.value = '';
+}
+
+// ─── MILESTONES ──────────────────────────────────────────────────────────────
+let shownMilestones = JSON.parse(localStorage.getItem('milestones') || '[]');
+
+function checkMilestone() {
+  const milestones = [
+    { val: 1000, emoji: '🎉', title: 'First Grand!', msg: 'You\'ve saved $1,000. The bug is bubbling with pride.' },
+    { val: 3000, emoji: '🚀', title: '$3,000!', msg: 'Minimum goal territory. The car is becoming real.' },
+    { val: 6000, emoji: '🏁', title: 'Minimum Goal Hit!', msg: '$6,000. You could buy a car today if you had to. Keep going.' },
+    { val: 10000, emoji: '💰', title: 'Ten Grand!', msg: '$10,000 saved. Two thirds of the way to the dream car.' },
+    { val: 15000, emoji: '🚗', title: 'GOAL REACHED!', msg: 'YOU DID IT. $15,000. Time to brew the first batch of ginger beer and go buy that car.' },
+  ];
+
+  for (const m of milestones) {
+    if (state.total >= m.val && !shownMilestones.includes(m.val)) {
+      shownMilestones.push(m.val);
+      localStorage.setItem('milestones', JSON.stringify(shownMilestones));
+      setTimeout(() => {
+        showModal(`
+          <div class="modal-emoji">${m.emoji}</div>
+          <div class="modal-title">${m.title}</div>
+          <div class="modal-body" style="text-align:center">${m.msg}</div>
+          <button class="modal-btn primary" onclick="closeModal()">Let's go! 🔥</button>
+        `);
+      }, 400);
+      break;
+    }
+  }
+}
+
+// ─── BUG PAGE ────────────────────────────────────────────────────────────────
+function updateBugPage() {
+  const faces = ['🫧', '😊', '🤩', '💪'];
+  const statuses = ['Dormant', 'Active', 'Thriving', 'Legendary'];
+  const details = [
+    'The bug needs feeding. Check in daily to keep it alive.',
+    'Bubbling away happily. Keep up the daily feeds.',
+    'Very active and healthy. Your consistency is showing.',
+    'This bug is unstoppable. A true survivor.'
+  ];
+  const lvl = Math.min(3, Math.floor(state.bugStreak / 7));
+  document.getElementById('bug-face').textContent = faces[lvl];
+  document.getElementById('bug-status').textContent = statuses[lvl];
+  document.getElementById('bug-detail').textContent = details[lvl];
+  document.getElementById('bug-fed-days').textContent = state.bugStreak;
+
+  const log = document.getElementById('bug-log');
+  if (state.bugLog.length === 0) {
+    log.innerHTML = 'No entries yet.';
+  } else {
+    log.innerHTML = state.bugLog.slice(0, 14).map(e =>
+      `<div>${e.fed ? '🟢' : '🔴'} ${e.date} — ${e.fed ? 'Fed' : 'Not fed'}</div>`
+    ).join('');
+  }
+}
+
+// ─── HISTORY PAGE ────────────────────────────────────────────────────────────
+function updateHistoryPage() {
+  const full = document.getElementById('full-history');
+  if (state.deposits.length === 0) {
+    full.innerHTML = '<div style="color:var(--text-light);font-size:13px">No deposits yet.</div>';
+    return;
+  }
+  full.innerHTML = [...state.deposits].reverse().map(d =>
+    `<div class="history-item"><span class="history-date">${d.date}</span><span class="history-amount">+$${d.amount.toFixed(2)}</span></div>`
+  ).join('');
+}
+
+// ─── SETTINGS ────────────────────────────────────────────────────────────────
+function updateSettingsPage() {
+  document.getElementById('settings-total').textContent = '$' + state.total.toFixed(2);
+  document.getElementById('settings-streak').textContent = state.streak;
+  const start = new Date(state.startDate);
+  const days = Math.floor((new Date() - start) / 86400000);
+  document.getElementById('settings-days').textContent = days;
+}
+
+function confirmReset() {
+  showModal(`
+    <div class="modal-emoji">⚠️</div>
+    <div class="modal-title">Reset Everything?</div>
+    <div class="modal-body" style="text-align:center">This will delete all savings data, streaks, and history. This cannot be undone.</div>
+    <button class="modal-btn danger" onclick="resetAll()">Yes, reset everything</button>
+    <button class="modal-btn secondary" onclick="closeModal()">Cancel</button>
+  `);
+}
+
+function resetAll() {
+  localStorage.removeItem('bugbank');
+  localStorage.removeItem('milestones');
+  shownMilestones = [];
+  state = loadState();
+  closeModal();
+  render();
+  showToast('All data reset.');
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+document.getElementById('modal-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// Check for missed checkin on load
+window.addEventListener('load', () => {
+  render();
+  const today = new Date().toDateString();
+  const yesterday = new Date(Date.now() - 86400000).toDateString();
+  if (state.lastCheckin && state.lastCheckin !== today && state.lastCheckin !== yesterday && state.streak > 0) {
+    setTimeout(() => {
+      const essay = essays[Math.floor(Math.random() * essays.length)];
+      state.streak = 0;
+      state.bugStreak = 0;
+      saveState();
+      render();
+      showModal(`
+        <div class="modal-emoji">😤</div>
+        <div class="modal-title">You missed a day.</div>
+        <div class="modal-body essay">${essay.replace(/\n/g, '<br>')}</div>
+        <button class="modal-btn danger" onclick="closeModal()">I deserve this.</button>
+      `);
+    }, 800);
+  }
+});
+</script>
+</body>
+</html>
